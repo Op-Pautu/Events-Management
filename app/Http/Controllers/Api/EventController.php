@@ -6,6 +6,7 @@ use App\Models\Event;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EventResource;
 
 class EventController extends Controller
 {
@@ -14,7 +15,8 @@ class EventController extends Controller
      */
     public function index()
     { 
-        return Event::all();
+        // return Event::all();
+        return EventResource::collection(Event::with('user', 'attendees')->get());
     }
 
     /**
@@ -32,29 +34,45 @@ class EventController extends Controller
             'user_id' => 1
         ]);
 
-        return $event;
+        return new EventResource($event);
     }
     /**
      * Display the specified resource.
      */
     public function show(Event $event)
     {
-        return $event;
+        $event->load('user', 'attendees');
+        return new EventResource($event);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Event $event)
     {
-        //
+          $event->update(
+            $request->validate([
+                'name' => 'sometimes|string|max:255',
+                'description' => 'nullable|string',
+                'start_time' => 'sometimes|date',
+                'end_time' => 'sometimes|date|after:start_time'
+            ])
+            
+        );
+
+        return new EventResource($event);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Event $event)
     {
-        //
+        $event->delete();
+
+        // return response()->json([
+        //     'message' => 'Event deleted successfully'
+        // ]);
+        return response(status: 204);
     }
 }
